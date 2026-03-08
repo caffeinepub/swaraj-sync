@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts ──────────────────────────────────────────────── */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque[opsz,wdth,wght].woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("/assets/fonts/Outfit[wght].woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/assets/fonts/GeistMono[wght].woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Design Tokens ──────────────────────────────────────── */
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Core palette — Dark-first SaaS (navy/slate + electric blue + amber) */
+    --background:        0.13 0.012 260;
+    --foreground:        0.92 0.01  260;
+    --card:              0.17 0.015 260;
+    --card-foreground:   0.92 0.01  260;
+    --popover:           0.19 0.016 260;
+    --popover-foreground: 0.92 0.01 260;
+
+    /* Primary: Electric Blue */
+    --primary:           0.62 0.19  238;
+    --primary-foreground: 0.98 0    0;
+
+    /* Secondary: Muted Slate */
+    --secondary:         0.22 0.018 260;
+    --secondary-foreground: 0.82 0.01 260;
+
+    /* Muted */
+    --muted:             0.20 0.015 260;
+    --muted-foreground:  0.55 0.02  260;
+
+    /* Accent: Amber / Orange */
+    --accent:            0.72 0.18  55;
+    --accent-foreground: 0.12 0.01  55;
+
+    /* Destructive: Red */
+    --destructive:       0.60 0.22  25;
+    --destructive-foreground: 0.98 0 0;
+
+    /* Success: Emerald */
+    --success:           0.62 0.17  160;
+    --success-foreground: 0.12 0.01 160;
+
+    /* Warning: Amber */
+    --warning:           0.78 0.18  80;
+    --warning-foreground: 0.12 0.01 80;
+
+    /* Borders */
+    --border:            0.28 0.02  260;
+    --input:             0.25 0.018 260;
+    --ring:              0.62 0.19  238;
+
+    /* Charts */
+    --chart-1:           0.62 0.19  238;
+    --chart-2:           0.72 0.18  55;
+    --chart-3:           0.62 0.17  160;
+    --chart-4:           0.60 0.22  25;
+    --chart-5:           0.68 0.20  300;
+
+    /* Sidebar — slightly lighter than bg */
+    --sidebar:           0.15 0.013 260;
+    --sidebar-foreground: 0.88 0.01 260;
+    --sidebar-primary:   0.62 0.19  238;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent:    0.20 0.016 260;
+    --sidebar-accent-foreground: 0.92 0.01 260;
+    --sidebar-border:    0.25 0.018 260;
+    --sidebar-ring:      0.62 0.19  238;
+  }
+
+  /* Force dark on html — this is a dark-only app */
+  html {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: oklch(var(--border)) transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  code, pre {
+    font-family: "Geist Mono", monospace;
+  }
+}
+
+/* ── Utility classes ────────────────────────────────────── */
+@layer utilities {
+  .text-success { color: oklch(var(--success)); }
+  .text-warning { color: oklch(var(--warning)); }
+  .bg-success   { background-color: oklch(var(--success)); }
+  .bg-warning   { background-color: oklch(var(--warning)); }
+  .border-success { border-color: oklch(var(--success)); }
+  .border-warning { border-color: oklch(var(--warning)); }
+  
+  .glow-blue {
+    box-shadow: 0 0 20px oklch(var(--primary) / 0.25);
+  }
+  .glow-amber {
+    box-shadow: 0 0 20px oklch(var(--accent) / 0.25);
+  }
+
+  /* Dot-grid background texture */
+  .dot-grid {
+    background-image: radial-gradient(
+      circle,
+      oklch(var(--border)) 1px,
+      transparent 1px
+    );
+    background-size: 24px 24px;
+  }
+}
