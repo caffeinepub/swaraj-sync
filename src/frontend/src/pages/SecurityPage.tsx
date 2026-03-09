@@ -27,6 +27,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useAssignRole,
   useCallerRole,
   useIsAdmin,
   usePingExternalService,
@@ -310,15 +311,24 @@ export function SecurityPage() {
 function RoleAssignPanel() {
   const [targetPrincipal, setTargetPrincipal] = useState("");
   const [selectedRole, setSelectedRole] = useState("user");
+  const assignRole = useAssignRole();
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!targetPrincipal.trim()) {
       toast.error("Principal ID is required");
       return;
     }
-    toast.info(
-      "Role assignment requires a valid principal — connect with the backend actor",
-    );
+    try {
+      await assignRole.mutateAsync({
+        principal: targetPrincipal.trim(),
+        role: selectedRole,
+      });
+      toast.success("Role assigned successfully");
+      setTargetPrincipal("");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to assign role";
+      toast.error(msg);
+    }
   };
 
   return (
@@ -326,6 +336,7 @@ function RoleAssignPanel() {
       <div className="space-y-1.5">
         <Label className="text-sm text-foreground">Principal ID</Label>
         <Input
+          data-ocid="security.principal.input"
           value={targetPrincipal}
           onChange={(e) => setTargetPrincipal(e.target.value)}
           placeholder="xxxxx-xxxxx-xxxxx-xxxxx-cai"
@@ -336,7 +347,7 @@ function RoleAssignPanel() {
         <Label className="text-sm text-foreground">Assign Role</Label>
         <Select value={selectedRole} onValueChange={setSelectedRole}>
           <SelectTrigger
-            data-ocid="security.role_select"
+            data-ocid="security.role.select"
             className="bg-secondary/50 border-border"
           >
             <SelectValue />
@@ -365,12 +376,17 @@ function RoleAssignPanel() {
       </div>
       <Button
         data-ocid="security.submit_button"
-        onClick={handleAssign}
+        onClick={() => void handleAssign()}
+        disabled={assignRole.isPending || !targetPrincipal.trim()}
         className="w-full gap-2"
         variant="outline"
       >
-        <Crown className="h-3.5 w-3.5" />
-        Assign Role
+        {assignRole.isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Crown className="h-3.5 w-3.5" />
+        )}
+        {assignRole.isPending ? "Assigning..." : "Assign Role"}
       </Button>
     </div>
   );

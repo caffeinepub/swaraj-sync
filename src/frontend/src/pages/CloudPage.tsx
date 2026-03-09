@@ -12,11 +12,24 @@ import {
 } from "@/components/ui/table";
 import { Cloud, Database, RefreshCw } from "lucide-react";
 import { motion } from "motion/react";
+import { SignInPrompt } from "../components/SignInPrompt";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useCloudRecords } from "../hooks/useQueries";
 import { formatNanoTimestamp, intentMeta, truncate } from "../utils/format";
 
 export function CloudPage() {
+  const { identity } = useInternetIdentity();
   const { data: records, isLoading, refetch } = useCloudRecords();
+
+  if (!identity) {
+    return (
+      <SignInPrompt
+        icon={Cloud}
+        title="Sign In to View Cloud Records"
+        description="All synced transactions are stored here. Records appear after buffer data is flushed to the cloud database. Sign in to access them."
+      />
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6" data-ocid="cloud.section">

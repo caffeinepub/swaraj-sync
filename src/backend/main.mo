@@ -1,16 +1,16 @@
-import Text "mo:core/Text";
-import Map "mo:core/Map";
-import Nat "mo:core/Nat";
 import Time "mo:core/Time";
+import Text "mo:core/Text";
 import List "mo:core/List";
-import Array "mo:core/Array";
-import Order "mo:core/Order";
+import Map "mo:core/Map";
 import Iter "mo:core/Iter";
+import Array "mo:core/Array";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import OutCall "http-outcalls/outcall";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+
+
 
 actor {
   type IntentCategory = {
@@ -21,24 +21,18 @@ actor {
     #unknown;
   };
 
-  module IntentCategory {
-    public func compare(intent1 : IntentCategory, intent2 : IntentCategory) : Order.Order {
-      switch (intent1, intent2) {
-        case (#hotel, #hotel) { #equal };
-        case (#food, #food) { #equal };
-        case (#finance, #finance) { #equal };
-        case (#ticket, #ticket) { #equal };
-        case (#unknown, #unknown) { #equal };
-        case (#hotel, _) { #less };
-        case (_, #hotel) { #greater };
-        case (#food, _) { #less };
-        case (_, #food) { #greater };
-        case (#finance, _) { #less };
-        case (_, #finance) { #greater };
-        case (#ticket, _) { #less };
-        case (_, #ticket) { #greater };
-      };
-    };
+  type TaskStatus = {
+    #pending;
+    #processing;
+    #done;
+    #failed;
+  };
+
+  type BufferStatus = {
+    #queued;
+    #flushing;
+    #synced;
+    #failed;
   };
 
   type ChatMessage = {
@@ -46,15 +40,7 @@ actor {
     userId : Principal;
     content : Text;
     intent : IntentCategory;
-    entities : [(Text, Text)];
     timestamp : Int;
-  };
-
-  type TaskStatus = {
-    #pending;
-    #processing;
-    #done;
-    #failed;
   };
 
   type AutomationTask = {
@@ -64,13 +50,6 @@ actor {
     payload : Text;
     status : TaskStatus;
     createdAt : Int;
-  };
-
-  type BufferStatus = {
-    #queued;
-    #flushing;
-    #synced;
-    #failed;
   };
 
   type BufferItem = {
@@ -103,28 +82,8 @@ actor {
     successRate : Nat;
   };
 
-  module ChatMessage {
-    public func compare(message1 : ChatMessage, message2 : ChatMessage) : Order.Order {
-      Nat.compare(message1.id, message2.id);
-    };
-  };
-
-  module AutomationTask {
-    public func compare(task1 : AutomationTask, task2 : AutomationTask) : Order.Order {
-      Nat.compare(task1.id, task2.id);
-    };
-  };
-
-  module BufferItem {
-    public func compare(bufferItem1 : BufferItem, bufferItem2 : BufferItem) : Order.Order {
-      Nat.compare(bufferItem1.id, bufferItem2.id);
-    };
-  };
-
-  module CloudRecord {
-    public func compare(cloudRecord1 : CloudRecord, cloudRecord2 : CloudRecord) : Order.Order {
-      Nat.compare(cloudRecord1.id, cloudRecord2.id);
-    };
+  public type UserProfile = {
+    name : Text;
   };
 
   var nextMessageId = 1;
@@ -134,8 +93,9 @@ actor {
 
   let messages = Map.empty<Principal, List.List<ChatMessage>>();
   let tasks = Map.empty<Principal, List.List<AutomationTask>>();
-  let bufferQueue = List.empty<BufferItem>();
-  let cloudRecords = List.empty<CloudRecord>();
+  var bufferQueue = List.empty<BufferItem>();
+  var cloudRecords = List.empty<CloudRecord>();
+  let userProfiles = Map.empty<Principal, UserProfile>();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -158,6 +118,27 @@ actor {
     };
   };
 
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can get profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
+  };
+
   public shared ({ caller }) func sendMessage(content : Text) : async ChatMessage {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can send messages");
@@ -169,7 +150,6 @@ actor {
       userId = caller;
       content;
       intent;
-      entities = [];
       timestamp = Time.now();
     };
 
@@ -215,10 +195,7 @@ actor {
     };
 
     switch (messages.get(caller)) {
-      case (?userMessages) {
-        let array = userMessages.toArray();
-        array.sort();
-      };
+      case (?userMessages) { userMessages.toArray() };
       case (null) { [] };
     };
   };
@@ -268,10 +245,7 @@ actor {
     };
 
     switch (tasks.get(caller)) {
-      case (?userTasks) {
-        let array = userTasks.toArray();
-        array.sort();
-      };
+      case (?userTasks) { userTasks.toArray() };
       case (null) { [] };
     };
   };
@@ -310,7 +284,7 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view buffer queue");
     };
 
-    bufferQueue.toArray().sort();
+    bufferQueue.toArray();
   };
 
   public shared ({ caller }) func addToBuffer(taskId : Nat) : async BufferItem {
@@ -337,9 +311,9 @@ actor {
     };
 
     var flushedCount = 0;
-    let updatedBufferQueue = List.empty<BufferItem>();
+    let newBuffer = List.empty<BufferItem>();
 
-    bufferQueue.forEach(func(item) {
+    for (item in bufferQueue.values()) {
       if (item.status == #queued) {
         let syncedItem = {
           id = item.id;
@@ -348,7 +322,7 @@ actor {
           queuedAt = item.queuedAt;
           status = #synced;
         };
-        updatedBufferQueue.add(syncedItem);
+        newBuffer.add(syncedItem);
         flushedCount += 1;
 
         let cloudRecord : CloudRecord = {
@@ -361,12 +335,11 @@ actor {
         cloudRecords.add(cloudRecord);
         nextCloudRecordId += 1;
       } else {
-        updatedBufferQueue.add(item);
+        newBuffer.add(item);
       };
-    });
+    };
 
-    bufferQueue.clear();
-    bufferQueue.addAll(updatedBufferQueue.values());
+    bufferQueue := newBuffer;
     flushedCount;
   };
 
@@ -375,7 +348,7 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view cloud records");
     };
 
-    cloudRecords.toArray().sort();
+    cloudRecords.toArray();
   };
 
   public shared ({ caller }) func addCloudRecord(taskId : Nat, data : Text, category : Text) : async CloudRecord {
@@ -401,23 +374,56 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view analytics");
     };
 
-    {
-      totalTasks = 0;
-      totalMessages = 0;
-      bufferSize = bufferQueue.size();
-      syncedCount = 0;
-      tasksByCategory = {
-        hotel = 0;
-        food = 0;
-        finance = 0;
-        ticket = 0;
-      };
-      successRate = 100;
-    };
-  };
+    var totalTasks = 0;
+    var totalMessages = 0;
+    var hotelCount = 0;
+    var foodCount = 0;
+    var financeCount = 0;
+    var ticketCount = 0;
+    var doneCount = 0;
 
-  public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
-    OutCall.transform(input);
+    for ((user, userMessages) in messages.entries()) {
+      totalMessages += userMessages.size();
+    };
+
+    for ((user, userTasks) in tasks.entries()) {
+      for (task in userTasks.values()) {
+        totalTasks += 1;
+        switch (task.category) {
+          case (#hotel) { hotelCount += 1 };
+          case (#food) { foodCount += 1 };
+          case (#finance) { financeCount += 1 };
+          case (#ticket) { ticketCount += 1 };
+          case (#unknown) {};
+        };
+        if (task.status == #done) {
+          doneCount += 1;
+        };
+      };
+    };
+
+    let bufferSize = bufferQueue.size();
+    let syncedCount = cloudRecords.size();
+
+    let successRate = if (totalTasks == 0) {
+      100;
+    } else {
+      (doneCount * 100) / totalTasks;
+    };
+
+    {
+      totalTasks;
+      totalMessages;
+      bufferSize;
+      syncedCount;
+      tasksByCategory = {
+        hotel = hotelCount;
+        food = foodCount;
+        finance = financeCount;
+        ticket = ticketCount;
+      };
+      successRate;
+    };
   };
 
   public shared ({ caller }) func pingExternalService(url : Text) : async Text {
@@ -426,5 +432,9 @@ actor {
     };
 
     await OutCall.httpGetRequest(url, [], transform);
+  };
+
+  public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
+    OutCall.transform(input);
   };
 };

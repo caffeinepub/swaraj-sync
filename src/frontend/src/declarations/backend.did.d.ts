@@ -46,7 +46,6 @@ export interface ChatMessage {
   'id' : bigint,
   'content' : string,
   'userId' : Principal,
-  'entities' : Array<[string, string]>,
   'intent' : IntentCategory,
   'timestamp' : bigint,
 }
@@ -75,6 +74,7 @@ export interface TransformationOutput {
   'body' : Uint8Array,
   'headers' : Array<http_header>,
 }
+export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -93,12 +93,15 @@ export interface _SERVICE {
   'flushBuffer' : ActorMethod<[], bigint>,
   'getAnalytics' : ActorMethod<[], Analytics>,
   'getBufferQueue' : ActorMethod<[], Array<BufferItem>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCloudRecords' : ActorMethod<[], Array<CloudRecord>>,
   'getMessages' : ActorMethod<[], Array<ChatMessage>>,
   'getTasks' : ActorMethod<[], Array<AutomationTask>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'pingExternalService' : ActorMethod<[string], string>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'sendMessage' : ActorMethod<[string], ChatMessage>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateTaskStatus' : ActorMethod<[bigint, string], boolean>,

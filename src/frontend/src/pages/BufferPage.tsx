@@ -16,6 +16,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { BufferItem } from "../backend.d";
+import { SignInPrompt } from "../components/SignInPrompt";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useBufferQueue, useFlushBuffer } from "../hooks/useQueries";
 import { bufferStatusMeta, formatNanoTimestamp } from "../utils/format";
 
@@ -83,10 +85,21 @@ function BufferCard({ item, index }: { item: BufferItem; index: number }) {
 }
 
 export function BufferPage() {
+  const { identity } = useInternetIdentity();
   const { data: items, isLoading, refetch } = useBufferQueue();
   const flushBuffer = useFlushBuffer();
   const [isOnline, setIsOnline] = useState(true);
   const [lastFlushCount, setLastFlushCount] = useState<number | null>(null);
+
+  if (!identity) {
+    return (
+      <SignInPrompt
+        icon={Activity}
+        title="Sign In to View Buffer Queue"
+        description="The buffer temporarily holds tasks before syncing to cloud. When cloud is unavailable, data is safely queued here. Sign in to manage it."
+      />
+    );
+  }
 
   const handleFlush = async () => {
     if (!isOnline) {

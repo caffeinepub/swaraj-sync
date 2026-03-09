@@ -67,11 +67,11 @@ export const Analytics = IDL.Record({
   }),
   'syncedCount' : IDL.Nat,
 });
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const ChatMessage = IDL.Record({
   'id' : IDL.Nat,
   'content' : IDL.Text,
   'userId' : IDL.Principal,
-  'entities' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
   'intent' : IntentCategory,
   'timestamp' : IDL.Int,
 });
@@ -103,12 +103,19 @@ export const idlService = IDL.Service({
   'flushBuffer' : IDL.Func([], [IDL.Nat], []),
   'getAnalytics' : IDL.Func([], [Analytics], ['query']),
   'getBufferQueue' : IDL.Func([], [IDL.Vec(BufferItem)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCloudRecords' : IDL.Func([], [IDL.Vec(CloudRecord)], ['query']),
   'getMessages' : IDL.Func([], [IDL.Vec(ChatMessage)], ['query']),
   'getTasks' : IDL.Func([], [IDL.Vec(AutomationTask)], ['query']),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'pingExternalService' : IDL.Func([IDL.Text], [IDL.Text], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'sendMessage' : IDL.Func([IDL.Text], [ChatMessage], []),
   'transform' : IDL.Func(
       [TransformationInput],
@@ -180,11 +187,11 @@ export const idlFactory = ({ IDL }) => {
     }),
     'syncedCount' : IDL.Nat,
   });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const ChatMessage = IDL.Record({
     'id' : IDL.Nat,
     'content' : IDL.Text,
     'userId' : IDL.Principal,
-    'entities' : IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
     'intent' : IntentCategory,
     'timestamp' : IDL.Int,
   });
@@ -217,12 +224,19 @@ export const idlFactory = ({ IDL }) => {
     'flushBuffer' : IDL.Func([], [IDL.Nat], []),
     'getAnalytics' : IDL.Func([], [Analytics], ['query']),
     'getBufferQueue' : IDL.Func([], [IDL.Vec(BufferItem)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCloudRecords' : IDL.Func([], [IDL.Vec(CloudRecord)], ['query']),
     'getMessages' : IDL.Func([], [IDL.Vec(ChatMessage)], ['query']),
     'getTasks' : IDL.Func([], [IDL.Vec(AutomationTask)], ['query']),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'pingExternalService' : IDL.Func([IDL.Text], [IDL.Text], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'sendMessage' : IDL.Func([IDL.Text], [ChatMessage], []),
     'transform' : IDL.Func(
         [TransformationInput],

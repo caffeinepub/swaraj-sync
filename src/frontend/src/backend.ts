@@ -89,18 +89,6 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface BufferItem {
-    id: bigint;
-    status: BufferStatus;
-    queuedAt: bigint;
-    taskId: bigint;
-    retryCount: bigint;
-}
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -112,6 +100,22 @@ export interface CloudRecord {
     taskId: bigint;
     syncedAt: bigint;
     category: IntentCategory;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface BufferItem {
+    id: bigint;
+    status: BufferStatus;
+    queuedAt: bigint;
+    taskId: bigint;
+    retryCount: bigint;
 }
 export interface Analytics {
     totalTasks: bigint;
@@ -130,14 +134,6 @@ export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
 }
-export interface ChatMessage {
-    id: bigint;
-    content: string;
-    userId: Principal;
-    entities: Array<[string, string]>;
-    intent: IntentCategory;
-    timestamp: bigint;
-}
 export interface AutomationTask {
     id: bigint;
     status: TaskStatus;
@@ -146,8 +142,14 @@ export interface AutomationTask {
     category: IntentCategory;
     payload: string;
 }
-export interface http_header {
-    value: string;
+export interface ChatMessage {
+    id: bigint;
+    content: string;
+    userId: Principal;
+    intent: IntentCategory;
+    timestamp: bigint;
+}
+export interface UserProfile {
     name: string;
 }
 export enum BufferStatus {
@@ -183,17 +185,20 @@ export interface backendInterface {
     flushBuffer(): Promise<bigint>;
     getAnalytics(): Promise<Analytics>;
     getBufferQueue(): Promise<Array<BufferItem>>;
+    getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCloudRecords(): Promise<Array<CloudRecord>>;
     getMessages(): Promise<Array<ChatMessage>>;
     getTasks(): Promise<Array<AutomationTask>>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     pingExternalService(url: string): Promise<string>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
     sendMessage(content: string): Promise<ChatMessage>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateTaskStatus(taskId: bigint, status: string): Promise<boolean>;
 }
-import type { AutomationTask as _AutomationTask, BufferItem as _BufferItem, BufferStatus as _BufferStatus, ChatMessage as _ChatMessage, CloudRecord as _CloudRecord, IntentCategory as _IntentCategory, TaskStatus as _TaskStatus, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { AutomationTask as _AutomationTask, BufferItem as _BufferItem, BufferStatus as _BufferStatus, ChatMessage as _ChatMessage, CloudRecord as _CloudRecord, IntentCategory as _IntentCategory, TaskStatus as _TaskStatus, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -308,60 +313,88 @@ export class Backend implements backendInterface {
             return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getCallerUserProfile(): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerUserProfile();
+                return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerUserProfile();
+            return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n16(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n17(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n16(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n17(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCloudRecords(): Promise<Array<CloudRecord>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCloudRecords();
-                return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCloudRecords();
-            return from_candid_vec_n18(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getMessages(): Promise<Array<ChatMessage>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getMessages();
                 return from_candid_vec_n19(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getMessages();
+            const result = await this.actor.getCloudRecords();
             return from_candid_vec_n19(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getMessages(): Promise<Array<ChatMessage>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMessages();
+                return from_candid_vec_n20(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMessages();
+            return from_candid_vec_n20(this._uploadFile, this._downloadFile, result);
         }
     }
     async getTasks(): Promise<Array<AutomationTask>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getTasks();
-                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTasks();
-            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserProfile(arg0);
+                return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserProfile(arg0);
+            return from_candid_opt_n16(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -392,18 +425,32 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveCallerUserProfile(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
     async sendMessage(arg0: string): Promise<ChatMessage> {
         if (this.processError) {
             try {
                 const result = await this.actor.sendMessage(arg0);
-                return from_candid_ChatMessage_n20(this._uploadFile, this._downloadFile, result);
+                return from_candid_ChatMessage_n21(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.sendMessage(arg0);
-            return from_candid_ChatMessage_n20(this._uploadFile, this._downloadFile, result);
+            return from_candid_ChatMessage_n21(this._uploadFile, this._downloadFile, result);
         }
     }
     async transform(arg0: TransformationInput): Promise<TransformationOutput> {
@@ -444,8 +491,8 @@ function from_candid_BufferItem_n5(_uploadFile: (file: ExternalBlob) => Promise<
 function from_candid_BufferStatus_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _BufferStatus): BufferStatus {
     return from_candid_variant_n8(_uploadFile, _downloadFile, value);
 }
-function from_candid_ChatMessage_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ChatMessage): ChatMessage {
-    return from_candid_record_n21(_uploadFile, _downloadFile, value);
+function from_candid_ChatMessage_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ChatMessage): ChatMessage {
+    return from_candid_record_n22(_uploadFile, _downloadFile, value);
 }
 function from_candid_CloudRecord_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CloudRecord): CloudRecord {
     return from_candid_record_n2(_uploadFile, _downloadFile, value);
@@ -456,8 +503,11 @@ function from_candid_IntentCategory_n3(_uploadFile: (file: ExternalBlob) => Prom
 function from_candid_TaskStatus_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TaskStatus): TaskStatus {
     return from_candid_variant_n14(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n17(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n18(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : value[0];
 }
 function from_candid_record_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
@@ -504,18 +554,16 @@ function from_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint
         category: from_candid_IntentCategory_n3(_uploadFile, _downloadFile, value.category)
     };
 }
-function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     content: string;
     userId: Principal;
-    entities: Array<[string, string]>;
     intent: _IntentCategory;
     timestamp: bigint;
 }): {
     id: bigint;
     content: string;
     userId: Principal;
-    entities: Array<[string, string]>;
     intent: IntentCategory;
     timestamp: bigint;
 } {
@@ -523,7 +571,6 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
         id: value.id,
         content: value.content,
         userId: value.userId,
-        entities: value.entities,
         intent: from_candid_IntentCategory_n3(_uploadFile, _downloadFile, value.intent),
         timestamp: value.timestamp
     };
@@ -560,7 +607,7 @@ function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): TaskStatus {
     return "pending" in value ? TaskStatus.pending : "done" in value ? TaskStatus.done : "processing" in value ? TaskStatus.processing : "failed" in value ? TaskStatus.failed : value;
 }
-function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -596,13 +643,13 @@ function from_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_BufferItem>): Array<BufferItem> {
     return value.map((x)=>from_candid_BufferItem_n5(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CloudRecord>): Array<CloudRecord> {
+function from_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CloudRecord>): Array<CloudRecord> {
     return value.map((x)=>from_candid_CloudRecord_n1(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ChatMessage>): Array<ChatMessage> {
-    return value.map((x)=>from_candid_ChatMessage_n20(_uploadFile, _downloadFile, x));
+function from_candid_vec_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ChatMessage>): Array<ChatMessage> {
+    return value.map((x)=>from_candid_ChatMessage_n21(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_AutomationTask>): Array<AutomationTask> {
+function from_candid_vec_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_AutomationTask>): Array<AutomationTask> {
     return value.map((x)=>from_candid_AutomationTask_n11(_uploadFile, _downloadFile, x));
 }
 function to_candid_UserRole_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {

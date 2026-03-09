@@ -8,6 +8,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { ChatMessage } from "../backend.d";
+import { SignInPrompt } from "../components/SignInPrompt";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useMessages, useSendMessage } from "../hooks/useQueries";
 import { formatNanoTime, intentMeta, truncate } from "../utils/format";
 
@@ -42,18 +44,6 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         <div className="rounded-lg bg-secondary/60 border border-border px-3 py-2.5 text-sm text-foreground leading-relaxed">
           {msg.content}
         </div>
-        {msg.entities && msg.entities.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {msg.entities.map(([key, val]) => (
-              <span
-                key={`${key}-${val}`}
-                className="text-[10px] font-mono bg-muted/50 border border-border rounded px-1.5 py-0.5 text-muted-foreground"
-              >
-                {key}: {val}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -108,6 +98,7 @@ function BotResponse({ msg }: { msg: ChatMessage }) {
 }
 
 export function ChatPage() {
+  const { identity } = useInternetIdentity();
   const [input, setInput] = useState("");
   const { data: messages, isLoading } = useMessages();
   const sendMessage = useSendMessage();
@@ -117,6 +108,16 @@ export function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  if (!identity) {
+    return (
+      <SignInPrompt
+        icon={MessageSquare}
+        title="Sign In to Chat"
+        description="Send messages to the AI chatbot. It detects hotel, food, finance, and ticket intents and routes them to the automation engine automatically."
+      />
+    );
+  }
 
   const handleSend = async () => {
     const text = input.trim();

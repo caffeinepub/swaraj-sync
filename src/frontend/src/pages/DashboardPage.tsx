@@ -14,10 +14,23 @@ import {
   Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { SignInPrompt } from "../components/SignInPrompt";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAnalytics } from "../hooks/useQueries";
 
 export function DashboardPage() {
+  const { identity } = useInternetIdentity();
   const { data: analytics, isLoading } = useAnalytics();
+
+  if (!identity) {
+    return (
+      <SignInPrompt
+        icon={BarChart3}
+        title="Sign In to View Analytics"
+        description="See real-time metrics: total tasks, messages, buffer size, sync count, and task breakdown by category. Sign in to access your dashboard."
+      />
+    );
+  }
 
   const successRate = analytics
     ? Math.min(100, Number(analytics.successRate))

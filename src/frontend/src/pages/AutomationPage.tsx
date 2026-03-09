@@ -34,6 +34,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { IntentCategory } from "../backend.d";
 import type { AutomationTask } from "../backend.d";
+import { SignInPrompt } from "../components/SignInPrompt";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useCreateTask, useTasks } from "../hooks/useQueries";
 import {
   formatNanoTimestamp,
@@ -60,12 +62,23 @@ function StatusBadge({ status }: { status: AutomationTask["status"] }) {
 }
 
 export function AutomationPage() {
+  const { identity } = useInternetIdentity();
   const { data: tasks, isLoading, refetch } = useTasks();
   const createTask = useCreateTask();
   const [tab, setTab] = useState("all");
   const [newCategory, setNewCategory] = useState<string>(IntentCategory.hotel);
   const [newPayload, setNewPayload] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  if (!identity) {
+    return (
+      <SignInPrompt
+        icon={Zap}
+        title="Sign In to View Automation"
+        description="Automation tasks are created automatically when you send messages through the chatbot. Sign in to view and manage them."
+      />
+    );
+  }
 
   const filtered =
     tasks?.filter((t) => {

@@ -7,18 +7,6 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface http_request_result {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface BufferItem {
-    id: bigint;
-    status: BufferStatus;
-    queuedAt: bigint;
-    taskId: bigint;
-    retryCount: bigint;
-}
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -30,6 +18,22 @@ export interface CloudRecord {
     taskId: bigint;
     syncedAt: bigint;
     category: IntentCategory;
+}
+export interface http_request_result {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface http_header {
+    value: string;
+    name: string;
+}
+export interface BufferItem {
+    id: bigint;
+    status: BufferStatus;
+    queuedAt: bigint;
+    taskId: bigint;
+    retryCount: bigint;
 }
 export interface Analytics {
     totalTasks: bigint;
@@ -48,14 +52,6 @@ export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
 }
-export interface ChatMessage {
-    id: bigint;
-    content: string;
-    userId: Principal;
-    entities: Array<[string, string]>;
-    intent: IntentCategory;
-    timestamp: bigint;
-}
 export interface AutomationTask {
     id: bigint;
     status: TaskStatus;
@@ -64,8 +60,14 @@ export interface AutomationTask {
     category: IntentCategory;
     payload: string;
 }
-export interface http_header {
-    value: string;
+export interface ChatMessage {
+    id: bigint;
+    content: string;
+    userId: Principal;
+    intent: IntentCategory;
+    timestamp: bigint;
+}
+export interface UserProfile {
     name: string;
 }
 export enum BufferStatus {
@@ -100,12 +102,15 @@ export interface backendInterface {
     flushBuffer(): Promise<bigint>;
     getAnalytics(): Promise<Analytics>;
     getBufferQueue(): Promise<Array<BufferItem>>;
+    getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCloudRecords(): Promise<Array<CloudRecord>>;
     getMessages(): Promise<Array<ChatMessage>>;
     getTasks(): Promise<Array<AutomationTask>>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     pingExternalService(url: string): Promise<string>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
     sendMessage(content: string): Promise<ChatMessage>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateTaskStatus(taskId: bigint, status: string): Promise<boolean>;
